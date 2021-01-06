@@ -9,21 +9,29 @@ BasicUpstart2(start)
 start:
     jsr InitialiseTheGame
     jsr PrintBoard
-    jsr ShowBoardState
 
 TryAgain:
     jsr GetUsersChoice
     //jsr PrintBoard
     jsr ShowBoardState
+    ldy #0
+    ldx #20
+    jsr ClearAt
+    ldy #0
+    ldx #22
+    jsr ClearAt
     jsr WinCheck
     jsr ComputersMove
     //jsr PrintBoard
+    jsr ShowBoardState
+    ldy #0
+    ldx #20
+    jsr ClearAt
+    jsr WinCheck
     ldy #0
     ldx #22
     jsr ClearAt
 
-    jsr ShowBoardState
-    jsr WinCheck
 
     lda var_Another
     beq TryAgain
@@ -40,6 +48,19 @@ TryAgain:
     sta 198
 
     jmp start
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 // =============================================================================
 
@@ -59,6 +80,7 @@ InitialiseTheGame:
     sta var_Human
 
     ldy #0
+    sty var_Another
     lda #255
 !ArrayLoop:
     sta BoardArray,y
@@ -111,6 +133,9 @@ PrintBoard:
     lda #CHR_White
     jsr krljmp_CHROUT
     lda #CHR_ClearScreen
+    jsr krljmp_CHROUT
+    lda #CHR_CursorDown
+    jsr krljmp_CHROUT
     jsr krljmp_CHROUT
 
     ldx #3
@@ -180,100 +205,19 @@ PrintBoard:
     lda #<txtOldSkoolCoder
     jsr PrintAtString
 
+    ldy #>txtVersionNumber
+    lda #<txtVersionNumber
+    jsr PrintAtString
+
     rts
 
 // =============================================================================
-ShowBoardState:
-    lda #11
-    sta var_K
-    lda #1
-    sta var_X
-
-!KOuterLoop:
-    lda #0
-    sta var_J
-
-    lda var_X
-    asl
-    tax
-    inx
-
-    lda scrRowLo,x
-    sta ZP1
-    lda scrRowHi,x
-    sta ZP1 + 1
-
-    clc
-    lda ZP1 + 1
-    adc #$D4
-    sta ZP1 + 1
-
-!JInnerLoop:
-    lda var_K
-    clc
-    adc var_J
-    tay
-
-    lda BoardArray,y
-    pha
-
-    lda var_J
-    asl
-    tay
-    iny
-
-    pla
-    cmp var_Empty
-    bne !NotEmpty+
-    lda #WHITE
-    jmp !PlaceCounter+
-
-!NotEmpty:
-    cmp var_Human
-    bne !NotHuman+
-    lda #BLUE
-    jmp !PlaceCounter+
-
-!NotHuman:
-    lda #YELLOW
-
-!PlaceCounter:
-    pha
-    sta (ZP1),y
-    iny
-    sta (ZP1),y
-    tya
-    clc
-    adc #39
-    tay
-    pla
-    sta (ZP1),y
-    iny
-    sta (ZP1),y
-
-    inc var_J
-    lda var_J
-    cmp #8
-    bcc !JInnerLoop-
-    inc var_X
-    lda var_K
-    clc
-    adc #10
-    sta var_K
-    cmp #79
-    bcc !KOuterLoop-
-    rts
 
 GetUsersChoice:
     ldy #>txtYourMove
     lda #<txtYourMove
     jsr PrintAtString    
     jsr bas_INLINE
-
-    ldy #0
-    ldx #20
-    jsr ClearAt
-
     lda #1
     ldx #$ff
     sta $7b
@@ -308,8 +252,9 @@ GetUsersChoice:
 !LocationTaken:
     ldy #>txtYouCantMoveThere
     lda #<txtYouCantMoveThere
-    jsr bas_PrintString    
+    jsr PrintAtString    
     jmp GetUsersChoice
+
 
 WinCheck:
     // 690 X = H
@@ -335,6 +280,7 @@ BASICLine_720:
 
 BASICLine_730:
     // 730 IF A(B+1) = X AND A(B+2) = X AND A(B+3) = X THEN 800
+
     lda #1
     jsr WinCheck3LineTest
     bcc BASICLine_740
@@ -342,6 +288,7 @@ BASICLine_730:
 
 BASICLine_740:
     // 740 IF B > 30 THEN IF A(B-10) = X AND A(B-20) = X AND A(B-30) = X THEN 800
+
     lda var_B
     cmp #30
     bcc BASICLine_750
@@ -353,6 +300,7 @@ BASICLine_740:
 
 BASICLine_750:
     // 750 IF B > 33 THEN IF A(B-11) = X AND A(B-22) = X AND A(B-33) = X THEN 800
+
     lda var_B
     cmp #33
     bcc BASICLine_760
@@ -364,6 +312,7 @@ BASICLine_750:
 
 BASICLine_760:
     // 760 IF B > 27 THEN IF A(B-9) = X AND A(B-18) = X AND A(B-27) = X THEN 800
+
     lda var_B
     cmp #27
     bcc BASICLine_770
@@ -403,6 +352,7 @@ WinFound:
     jsr PrintAtString
     lda #$FF
     sta var_Another
+    jmp BASICLine_840
 
 BASICLine_830:
     lda var_X
@@ -466,17 +416,12 @@ BASICLine_180:
 BASICLine_210:
     // 210 REM FOUR IN ROW DANGER/CHANCE?
     // 220 REM ACROSS
+
     // 230 IF A(B+1) = X AND A(B+2) = X AND A(B+3) = E AND A(B + 13) <> E THEN MV = B + 3 : GOTO 650
 
-    ldy #1
-    sty TestElements
-    iny
-    sty TestElements + 1
-    iny 
-    sty TestElements + 2
-    ldy #13
-    sty TestElements + 3
-
+    lda #1
+    ldx #2
+    ldy #3
     jsr ComputerMove4LineTest
     bcc BASICLine_240
     jmp BASICLine_650
@@ -484,15 +429,9 @@ BASICLine_210:
 BASICLine_240:
     // 240 IF A(B-1) = X AND A(B-2) = X AND A(B-3) = E AND A(B + 7) <> E THEN MV = B - 3 : GOTO 650
 
-    ldy #$FF
-    sty TestElements
-    dey
-    sty TestElements + 1
-    dey 
-    sty TestElements + 2
-    ldy #7
-    sty TestElements + 3
-
+    lda #$FF
+    ldx #$FE
+    ldy #$FD
     jsr ComputerMove4LineTest
     bcc BASICLine_250
     jmp BASICLine_650
@@ -500,15 +439,9 @@ BASICLine_240:
 BASICLine_250:
     // 250 IF A(B+1) = X AND A(B+2) = X AND A(B-1) = E AND A(B + 9) <> E THEN MV = B - 1 : GOTO 650
 
-    ldy #01
-    sty TestElements
-    iny
-    sty TestElements + 1
-    ldy #$FF 
-    sty TestElements + 2
-    ldy #9
-    sty TestElements + 3
-
+    lda #1
+    ldx #2
+    ldy #$FF
     jsr ComputerMove4LineTest
     bcc BASICLine_260
     jmp BASICLine_650
@@ -516,81 +449,54 @@ BASICLine_250:
 BASICLine_260:
     // 260 IF A(B-1) = X AND A(B+2) = X AND A(B+1) = E AND A(B + 11) <> E THEN MV = B + 1 : GOTO 650
 
-    ldy #$FF
-    sty TestElements
-    ldy #2
-    sty TestElements + 1
-    dey
-    sty TestElements + 2
-    ldy #11
-    sty TestElements + 3
-
+    lda #$FF
+    ldx #$02
+    ldy #$01
     jsr ComputerMove4LineTest
     bcc BASICLine_270
     jmp BASICLine_650
 
 BASICLine_270:
     // 270 IF A(B+1) = X AND A(B-1) = X AND A(B+2) = E AND A(B + 12) <> E THEN MV = B + 2 : GOTO 650
-    ldy #1
-    sty TestElements
-    ldy #$FF
-    sty TestElements + 1
-    ldy#2
-    sty TestElements + 2
-    ldy #12
-    sty TestElements + 3
 
+    lda #$01
+    ldx #$FF
+    ldy #$02
     jsr ComputerMove4LineTest
     bcc BASICLine_280
     jmp BASICLine_650
 
 BASICLine_280:
     // 280 IF A(B+1) = X AND A(B-1) = X AND A(B-2) = E AND A(B + 8) <> E THEN MV = B - 2 : GOTO 650
-    ldy #1
-    sty TestElements
-    ldy #$FF
-    sty TestElements + 1
-    dey
-    sty TestElements + 2
-    ldy #8
-    sty TestElements + 3
 
+    lda #$01
+    ldx #$FF
+    ldy #$FE
     jsr ComputerMove4LineTest
     bcc BASICLine_290
     jmp BASICLine_650
 
 BASICLine_290:
     // 290 IF A(B-1) = X AND A(B-2) = X AND A(B+1) = E AND A(B + 11) <> E THEN MV = B + 1 : GOTO 650
-    ldy #$FF
-    sty TestElements
-    dey
-    sty TestElements + 1
-    ldy #1
-    sty TestElements + 2
-    ldy #11
-    sty TestElements + 3
 
+    lda #$FF
+    ldx #$FE
+    ldy #$01
     jsr ComputerMove4LineTest
     bcc BASICLine_310
     jmp BASICLine_650
 
     // 300 REM DOWN
-
 BASICLine_310:
     // 310 IF B > 20 THEN IF A(B-10) = X AND A(B-20) = X AND A(B+10) = E AND A(B+20) <> E THEN MV = B + 10 : GOTO 650
+
     ldy var_B
     cpy #21         // >=21 => >20
     bcc BASICLine_330
 
-    ldy #$F6
-    sty TestElements
-    ldy #$EC
-    sty TestElements + 1
-    ldy #10
-    sty TestElements + 2
-    ldy #20
-    sty TestElements + 3
-
+    lda #$F6
+    ldx #$EC
+    ldy #$0A
     jsr ComputerMove4LineTest
     bcc BASICLine_330
     jmp BASICLine_650
@@ -598,30 +504,20 @@ BASICLine_310:
     // 320 REM DIAGONALS
 BASICLine_330:
     // 330 IF A(B+11) = X AND A(B+22) = X AND A(B-11) = E AND A(B-1) <> E THEN MV = B-11 : GOTO 650
-    ldy #11
-    sty TestElements
-    ldy #22
-    sty TestElements + 1
-    ldy #$F5
-    sty TestElements + 2
-    ldy #$FF
-    sty TestElements + 3
 
+    lda #$0B
+    ldx #$16
+    ldy #$F5
     jsr ComputerMove4LineTest
     bcc BASICLine_340
     jmp BASICLine_650
     
 BASICLine_340:
     // 340 IF A(B+9) = X AND A(B+18) = X AND A(B-9) = E AND A(B+1) <> E THEN MV = B - 9:GOTO 650
-    ldy #9
-    sty TestElements
-    ldy #18
-    sty TestElements + 1
-    ldy #$F7
-    sty TestElements + 2
-    ldy #1
-    sty TestElements + 3
 
+    lda #$09
+    ldx #$12
+    ldy #$F7
     jsr ComputerMove4LineTest
     bcc BASICLine_380
     jmp BASICLine_650
@@ -633,8 +529,7 @@ BASICLine_380:
     // 380 IF A(B+1) = X AND A(B+2) = E AND A(B+12) <> E THEN MV = B + 2 : GOTO 650
 
     lda #1
-    ldy #2
-    ldx #12
+    ldx #2
     jsr ComputerMove3LineTest
     bcc BASICLine_390
     jmp BASICLine_650
@@ -643,8 +538,7 @@ BASICLine_390:
     // 390 IF A(B+1) = X AND A(B-1) = E AND A(B+9) <> E THEN MV = B - 1 : GOTO 650
 
     lda #1
-    ldy #$FF
-    ldx #9
+    ldx #$FF
     jsr ComputerMove3LineTest
     bcc BASICLine_400
     jmp BASICLine_650
@@ -653,19 +547,17 @@ BASICLine_400:
     // 400 IF A(B-1) = X AND A(B-2) = E AND A(B+8) <> E THEN MV = B - 2 : GOTO 650
 
     lda #$FF
-    ldy #$FE
-    ldx #8
+    ldx #$FE
     jsr ComputerMove3LineTest
     bcc BASICLine_420
     jmp BASICLine_650
 
-BASICLine_420:
     // 410 REM VERTICAL
+BASICLine_420:
     // 420 IF A(B+10) = X AND A(B-10) = E AND A(B) <> E THEN MV = B - 10 : GOTO 650
 
-    lda #10
-    ldy #$F6
-    ldx #0
+    lda #$0A
+    ldx #$F6
     jsr ComputerMove3LineTest
     bcc BASICLine_440
     jmp BASICLine_650
@@ -674,9 +566,8 @@ BASICLine_420:
 BASICLine_440:
     // 440 IF A(B+9) = X AND A(B-9) = E AND A(B+1) <> E THEN MV = B - 9 : GOTO 650
 
-    lda #9
-    ldy #$F7
-    ldx #1
+    lda #$09
+    ldx #$F7
     jsr ComputerMove3LineTest
     bcc BASICLine_450
     jmp BASICLine_650
@@ -687,9 +578,8 @@ BASICLine_450:
     cmp #12
     bcc BASICLine_460
 
-    lda #11
-    ldy #$F5
-    ldx #$FF
+    lda #$0B
+    ldx #$F5
     jsr ComputerMove3LineTest
     bcc BASICLine_460
     jmp BASICLine_650
@@ -704,11 +594,13 @@ BASICLine_480:
     // 490 FOR N = 1 TO 3
     // 500 M(N) = 0
     // 510 NEXT N
+    ldy #0
     lda #0
-    sta MoveArray
-    sta MoveArray + 1
-    sta MoveArray + 2
-    sta MoveArray + 3
+!ForNLoop:
+    sta MoveArray,y
+    iny
+    cpy #3
+    bne !ForNLoop-
 
     // 520 CT = 0
     lda #0
@@ -740,7 +632,6 @@ BASICLine_550:
     // 550 IF A(B+1) = E AND A(B+11) <> E THEN CT = CT + 1 : M(CT) = B + 1
 
     lda #1
-    ldy #11
     jsr ComputerPossibleMove2LineTest
     bcc BASICLine_560
     jmp BASICLine_600
@@ -749,7 +640,6 @@ BASICLine_560:
     // 560 IF A(B-1) = E AND A(B+9) <> E THEN CT = CT + 1 : M(CT) = B - 1
 
     lda #$FF
-    ldy #9
     jsr ComputerPossibleMove2LineTest
     bcc BASICLine_570
     jmp BASICLine_600
@@ -758,7 +648,6 @@ BASICLine_570:
     // 570 IF A(B-10) = E AND A(B) <> E THEN CT = CT + 1 : M(CT) = B - 10
 
     lda #$F6
-    ldy #0
     jsr ComputerPossibleMove2LineTest
     bcc BASICLine_580
     jmp BASICLine_600
@@ -767,19 +656,14 @@ BASICLine_580:
     // 580 IF A(B-11) = E AND A(B-1) <> E THEN CT = CT + 1 : M(CT) = B - 11
 
     lda #$F5
-    ldy #$FF
     jsr ComputerPossibleMove2LineTest
     bcc BASICLine_590
     jmp BASICLine_600
 
 BASICLine_590:
     // 590 IF A(B-9) = E AND A(B+1) <> E THEN CT = CT + 1 : M(CT) = B - 9
-
     lda #$F7
-    ldy #1
     jsr ComputerPossibleMove2LineTest
-    bcc BASICLine_600
-    jmp BASICLine_600
 
 BASICLine_600:
     // 600 NEXT B
@@ -798,9 +682,9 @@ BASICLine_610:
     ldy #>txtIThinkWeshouldCallItADraw
     lda #<txtIThinkWeshouldCallItADraw
     jsr PrintAtString    
-
     lda #$FF
     sta var_Another
+
     // 630 PRINT:PRINT:PRINT:END
     rts
 

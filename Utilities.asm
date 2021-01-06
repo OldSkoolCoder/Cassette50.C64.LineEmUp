@@ -70,6 +70,318 @@ PrintAtString:
     ldy ZeroPageHi
     jmp bas_PrintString
 
+ResetTestVar:
+    lda #0
+    sta var_Test
+    rts
+
+//******************************************************
+// WinCheck Line Test to check 3 elements of the grid
+// for a 3 in a line senario
+// Inputs   : Acc = Delta from var_B (1st Instance : x1)
+//******************************************************
+// IF A(dx1) = X AND A(2*dx2) = X AND A(3*dx3) = X
+WinCheck3LineTest:
+    sta wc3tdx1
+    sta wc3tdx2
+    sta wc3tdx3
+
+    jsr ResetTestVar
+
+    lda var_B
+    clc
+    adc wc3tdx1:#$FF
+    pha
+    tay
+    ldx var_X
+    jsr PositionEqualsCheck
+    rol var_Test                // 0000 0001
+
+    pla
+    clc
+    adc wc3tdx2:#$FF
+    pha
+    tay
+    ldx var_X
+    jsr PositionEqualsCheck
+    rol var_Test                // 0000 0011
+
+    pla
+    clc
+    adc wc3tdx3:#$FF
+    tay
+    ldx var_X
+    jsr PositionEqualsCheck
+    rol var_Test                // 0000 0111
+
+    lda var_Test
+    cmp #%00000111
+    bne !LineFailedTest+
+    // Line Passed Test
+    sec
+    jmp !Exit+
+
+!LineFailedTest:
+    clc
+
+!Exit:
+    rts
+
+//******************************************************
+// Works out all the possible moves the computer can take
+// Inputs   : Acc = Delta from var_B (1st Instance : x1)
+//******************************************************
+// A(x1) = E and A(x1 + 10) <> E then CT = CT + 1 : M(CT) = B + x1
+
+ComputerPossibleMove2LineTest:
+    sta cp2tx1
+    sta cp2tRes
+
+    jsr ResetTestVar
+
+    lda var_B
+    clc
+    adc cp2tx1:#$FF
+    pha
+    tay
+    ldx var_Empty
+    jsr PositionEqualsCheck
+    rol var_Test
+
+    pla
+    clc
+    adc #10
+    tay
+    ldx var_Empty
+    jsr PositionNotEqualsCheck
+    rol var_Test
+
+    lda var_Test
+    cmp #%00000011
+    bne !LineFailedTest+
+    ldx var_CT
+    lda var_B
+    clc
+    adc cp2tRes: #$FF
+    sta MoveArray,x
+    inc var_CT
+    sec
+    jmp !Exit+
+
+!LineFailedTest:
+    clc
+
+!Exit:
+    rts
+
+
+//******************************************************
+// Test 4 Elements in a row for possible moves
+// Inputs   : Acc = X1
+//          : X Reg = X2
+//          : Y Reg = X3
+//******************************************************
+// Output : Carry Set = Line Is True
+//        : Carry Clear = Line Is False
+//******************************************************
+// IF A(x1) = X AND A(x2) = X AND A(x3) = E AND A(x3+10) <> E THEN MV = B + x3
+ComputerMove4LineTest:
+    sta cm4ltx1
+    stx cm4ltx2
+    sty cm4ltx3
+    sty cm4ltRes
+
+    jsr ResetTestVar
+
+    lda var_B
+    clc
+    adc cm4ltx1:#$FF
+    tay
+    ldx var_X
+    jsr PositionEqualsCheck
+    rol var_Test
+
+    lda var_B
+    clc
+    adc cm4ltx2:#$FF
+    tay
+    ldx var_X
+    jsr PositionEqualsCheck
+    rol var_Test
+
+    lda var_B
+    clc
+    adc cm4ltx3:#$FF
+    pha
+    tay
+    ldx var_Empty
+    jsr PositionEqualsCheck
+    rol var_Test
+
+    pla
+    clc
+    adc #10
+    tay
+    ldx var_Empty
+    jsr PositionNotEqualsCheck
+    rol var_Test
+
+    lda var_Test
+    cmp #%00001111
+    bne !LineFailedTest+
+    lda var_B
+    clc
+    adc cm4ltRes:#$FF
+    sta var_MV
+    sec
+    jmp !Exit+
+
+!LineFailedTest:
+    clc
+
+!Exit:
+    rts
+
+
+//******************************************************
+// Test 3 Elements in a row for possible moves
+// Inputs   : Acc = Test 1
+//          : X = Test 2 and Result Add / Sub
+//******************************************************
+// Output : Carry Set = Line Is True
+//        : Carry Clear = Line Is False
+//******************************************************
+// IF A(x1) = X AND A(x2) = E AND A(x2+10) <> E THEN MV = B + x2
+ComputerMove3LineTest:
+    sta cm3ltx1
+    stx cm3ltx2
+    stx cm3lRes
+
+    jsr ResetTestVar
+
+    lda var_B
+    clc
+    adc cm3ltx1:#$FF
+    tay
+    ldx var_X
+    jsr PositionEqualsCheck
+    rol var_Test
+
+    lda var_B
+    clc
+    adc cm3ltx2:#$FF
+    pha
+    tay
+    ldx var_Empty
+    jsr PositionEqualsCheck
+    rol var_Test
+
+    pla
+    clc
+    adc #10
+    tay
+    ldx var_Empty
+    jsr PositionNotEqualsCheck
+    rol var_Test
+
+    lda var_Test
+    cmp #%00000111
+    bne !LineFailedTest+
+    lda var_B
+    clc
+    adc cm3lRes:#$FF
+    sta var_MV
+    sec
+    jmp !Exit+
+
+!LineFailedTest:
+    clc
+
+!Exit:
+    rts
+
+// =============================================================================
+ShowBoardState:
+    lda #11
+    sta var_K
+    lda #1
+    sta var_X
+
+!KOuterLoop:
+    lda #0
+    sta var_J
+
+    lda var_X
+    asl
+    tax
+    inx
+
+    lda scrRowLo,x
+    sta ZP1
+    lda scrRowHi,x
+    sta ZP1 + 1
+
+    clc
+    lda ZP1 + 1
+    adc #$D4
+    sta ZP1 + 1
+
+!JInnerLoop:
+    lda var_K
+    clc
+    adc var_J
+    tay
+
+    lda BoardArray,y
+    pha
+
+    lda var_J
+    asl
+    tay
+    iny
+
+    pla
+    cmp var_Empty
+    bne !NotEmpty+
+    lda #WHITE
+    jmp !PlaceCounter+
+
+!NotEmpty:
+    cmp var_Human
+    bne !NotHuman+
+    lda #BLUE
+    jmp !PlaceCounter+
+
+!NotHuman:
+    lda #YELLOW
+
+!PlaceCounter:
+    pha
+    sta (ZP1),y
+    iny
+    sta (ZP1),y
+    tya
+    clc
+    adc #39
+    tay
+    pla
+    sta (ZP1),y
+    iny
+    sta (ZP1),y
+
+    inc var_J
+    lda var_J
+    cmp #8
+    bcc !JInnerLoop-
+    inc var_X
+    lda var_K
+    clc
+    adc #10
+    sta var_K
+    cmp #79
+    bcc !KOuterLoop-
+    rts
+
 //******************************************************
 // Clears Line of the Screen
 // Inputs   : X = Row
@@ -85,255 +397,5 @@ ClearAt:
     iny
     cpy #39
     bne !Looper-
-
-ResetTestVar:
-    lda #0
-    sta var_Test
     rts
-
-//******************************************************
-// Test 4 Elements in a row for possible moves
-// Inputs   : 
-//          : 
-//******************************************************
-// Output : Carry Set = Line Is True
-//        : Carry Clear = Line Is False
-//******************************************************
-// IF A(x1) = X AND A(x2) = X AND A(x3) = E AND A(x4) <> E THEN MV = B .....
-ComputerMove4LineTest:
-    lda TestElements
-    sta cml4tX1
-    lda TestElements + 1
-    sta cml4tX2
-    lda TestElements + 2
-    sta cml4tX3
-    sta cml4tRes
-    lda TestElements + 3
-    sta cml4tX4
-
-    // lda ResultElement
-    // sta cml4tRes
-
-    jsr ResetTestVar
-
-    lda var_B
-    clc
-    adc cml4tX1: #$FF
-    tay
-    ldx var_X
-    jsr PositionEqualsCheck
-    rol var_Test
-
-    lda var_B
-    clc
-    adc cml4tX2: #$FF
-    tay
-    ldx var_X
-    jsr PositionEqualsCheck
-    rol var_Test
-
-    lda var_B
-    clc
-    adc cml4tX3: #$FF
-    tay
-    ldx var_Empty
-    jsr PositionEqualsCheck
-    rol var_Test
-
-    lda var_B
-    clc
-    adc cml4tX4: #$FF
-    tay
-    ldx var_Empty
-    jsr PositionNotEqualsCheck
-    rol var_Test
-
-    lda var_Test
-    cmp #%00001111
-    bne !ClearCarry+
-
-    lda var_B
-    clc
-    adc cml4tRes:#$FF
-    sta var_MV
-    sec
-    jmp !Exit+
-
-!ClearCarry:
-    clc
-!Exit:
-    rts
-
-//******************************************************
-// Test 3 Elements in a row for possible moves
-// Inputs   : Acc = Test 1
-//          : Y = Test 2 and Result Add / Sub
-//          : X = Test 3
-//******************************************************
-// Output : Carry Set = Line Is True
-//        : Carry Clear = Line Is False
-//******************************************************
-// IF A(x1) = X AND A(x2) = E AND A(x3) <> E THEN ........
-ComputerMove3LineTest:
-    //lda TestElements
-    sta cml3tX1
-    //lda TestElements + 1
-    sty cml3tX2
-    sty cml3tRes
-    //lda TestElements + 2
-    stx cml3tX3
-
-    jsr ResetTestVar
-
-    // lda ResultElement
-    // sta cml3tRes
-
-    lda var_B
-    clc
-    adc cml3tX1: #$FF
-    tay
-    ldx var_X
-    jsr PositionEqualsCheck
-    rol var_Test
-
-    lda var_B
-    clc
-    adc cml3tX2: #$FF
-    tay
-    ldx var_Empty
-    jsr PositionEqualsCheck
-    rol var_Test
-
-    lda var_B
-    clc
-    adc cml3tX3: #$FF
-    tay
-    ldx var_Empty
-    jsr PositionNotEqualsCheck
-    rol var_Test
-
-    lda var_Test
-    cmp #%00000111
-    bne !ClearCarry+
-
-    lda var_B
-    clc
-    adc cml3tRes:#$FF
-    sta var_MV
-
-    sec
-    jmp !Exit+
-
-!ClearCarry:
-    clc
-!Exit:
-    rts
-
-//******************************************************
-// Test 4 Elements in a row for possible moves
-// Inputs   : Acc = Test
-//          : 
-//          : 
-//******************************************************
-// Output : Carry Set = Line Is True
-//        : Carry Clear = Line Is False
-//******************************************************
-// IF A(x1) = X AND A(x2) = X AND A(x3) = X THEN MV = B .....
-WinCheck3LineTest:
-    //lda TestElements
-    sta wc3tX1
-    sta wc3tX2
-    sta wc3tX3
-
-    jsr ResetTestVar
-
-    lda var_B
-    clc
-    adc wc3tX1: #$FF
-    pha
-    tay
-    ldx var_X
-    jsr PositionEqualsCheck
-    rol var_Test
-
-    pla
-    clc
-    adc wc3tX2: #$FF
-    pha
-    tay
-    ldx var_X
-    jsr PositionEqualsCheck
-    rol var_Test
-
-    pla
-    clc
-    adc wc3tX3: #$FF
-    tay
-    ldx var_X
-    jsr PositionEqualsCheck
-    rol var_Test
-
-    lda var_Test
-    cmp #%00000111
-    bne !ClearCarry+
-
-    sec
-    jmp !Exit+
-
-!ClearCarry:
-    clc
-!Exit:
-    rts
-
-//******************************************************
-// Test 2 Elements in a row for possible moves
-// Inputs   : Acc = Test 1
-//          : Y = Test 2
-//******************************************************
-// Output : Carry Set = Line Is True
-//        : Carry Clear = Line Is False
-//******************************************************
-// IF A(x1) = E AND A(x2) <> E THEN CT = CT + 1 : M(CT) = B .....
-ComputerPossibleMove2LineTest:
-    //lda TestElements
-    sta cp2tX1
-    sta cp2tRes
-    //lda TestElements + 1
-    sty cp2tX2
-
-    jsr ResetTestVar
-
-    lda var_B
-    clc
-    adc cp2tX1: #$FF
-    tay
-    ldx var_Empty
-    jsr PositionEqualsCheck
-    rol var_Test
-
-    lda var_B
-    clc
-    adc cp2tX2: #$FF
-    tay
-    ldx var_Empty
-    jsr PositionNotEqualsCheck
-    rol var_Test
-
-    lda var_Test
-    cmp #%00000011
-    bne !ClearCarry+
-
-    ldx var_CT
-    lda var_B
-    clc
-    adc cp2tRes:#$FF
-    sta MoveArray,x
-    inc var_CT
-
-    sec
-    jmp !Exit+
-
-!ClearCarry:
-    clc
-!Exit:
-    rts
+    

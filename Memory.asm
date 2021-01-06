@@ -7,9 +7,11 @@
 .label ZeroPageLo   = $C3
 .label ZeroPageHi   = $C4
 
-.label TestElements = $033B
-.label ResultElement = TestElements + 4
-.label BoardArray   = ResultElement + 1
+// .label ZP1          = $45
+// .label ZeroPageLo   = $47
+// .label ZeroPageHi   = $48
+
+.label BoardArray   = $033C
 .label MoveArray    = BoardArray + 110
 
 .label var_B        = $02A7
@@ -33,7 +35,6 @@
 
 
 
-
 // Format :
 // .byte X, Y
 // .text "message"
@@ -44,44 +45,45 @@ TitleScreen:
 .text "LINE 'EM UP"
 .byte 0
 
-// txtTab:
-// .text "     "
-// .byte 0
-
 txtBoardLine:
 .byte 1,17
 .text "1 2 3 4 5 6 7"
 .byte 0
 
 txtYourMove:
-.byte 0,20
-.text "YOUR MOVE, WHICH COLUMN?"
+.byte 0, 20
+.text "YOUR MOVE, WHICH COLUMN DO YOU WISH?"
 .byte 0
 
 txtYouCantMoveThere:
-.byte 0,20
+.byte 0,22
 .text "YOU CANT MOVE THERE"
-.byte 13, 0
+.byte 0
 
 txtYouhaveWonHuman:
 .byte 0,20
 .text "YOU'VE BEATEN ME, HUMAN!!!"
-.byte 13, 0
+.byte 0
 
 txtYouhaveWonComputer:
 .byte 0,20
 .text "I'VE DEFEATED YOU, HUMAN!!!!"
-.byte 13, 0
+.byte 0
 
 txtStandByForTheComputer:
 .byte 0,20
 .text "STAND BY FOR MY MOVE"
-.byte 13, 0
+.byte 0
 
 txtIThinkWeshouldCallItADraw:
 .byte 0,20
 .text "I THINK WE SHOULD CALL IT A DRAW"
-.byte 13, 0
+.byte 0
+
+txtPlayAgain:
+.byte 0, 22
+.text "PRESS SPACE TO PLAY AGAIN"
+.byte 0
 
 txtComputerTile:
 .byte 18, 6, CHR_Yellow ,CHR_ReverseOn, CHR_Space, CHR_ReverseOff, CHR_White
@@ -93,12 +95,6 @@ txtHumanTile:
 .text ": HUMANS TILE"
 .byte 0
 
-txtPlayAgain:
-.byte 0, 22
-.text "PRESS SPACE TO PLAY AGAIN"
-.byte 0
-
-
 txtCodedBy:
 .byte 18, 12
 .text "CODED BY :"
@@ -107,4 +103,9 @@ txtCodedBy:
 txtOldSkoolCoder:
 .byte 26, 13
 .text "OLDSKOOLCODER"
+.byte 0
+
+txtVersionNumber:
+.byte 30,23
+.text "VSN 1.0.2"
 .byte 0
